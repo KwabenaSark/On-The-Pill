@@ -4,22 +4,26 @@ const express = require('express');
 const nodemailer = require('nodemailer');
 
 const app = express();
-const PORT = 3000;
+const PORT = 8000;
 const filePath = path.join(__dirname, 'codes.json');
 const EXPIRY_TIME = 5 * 60 * 1000; // 5 minutes in milliseconds
+app.use(express.json());
+
 
 // Email Configuration
 const transporter = nodemailer.createTransport({
-    service: 'gmail',
+    host: 'smtp.hostinger.com', // Hostinger's SMTP server
+    port: 465, // or 587 if TLS
+    secure: true, // true for port 465, false for 587
     auth: {
-        user: 'kwabsark4@gmail.com', // Replace with your email
-        pass: 'rvva nnwz zwlm tdhz'   // Use an app password for Gmail
+        user: 'otp@callinclinic.com', // your custom email
+        pass: 'otp@IPMC123'   // your Hostinger email password
     }
 });
 
 // Function to generate a single random 5-digit number
 function generateRandomNumber() {
-    return Math.floor(10000 + Math.random() * 90000);
+    return Math.floor(1000 + Math.random() * 9000);
 }
 
 // Function to read existing codes from file
@@ -40,7 +44,7 @@ function writeCodes(codes) {
 // Function to send email with the generated code
 function sendEmail(code, recipientEmail) {
     const mailOptions = {
-        from: 'kwabsark4@gmail.com',
+        from: 'otp@callinclinic.com',
         to: recipientEmail,
         subject: 'Call in Clinic OTP Verification Code',
         html: `
@@ -74,8 +78,8 @@ function sendEmail(code, recipientEmail) {
 
 
 // Route to generate and send OTP
-app.get('/send-code', (req, res) => {
-    const { email } = req.query;
+app.post('/send_code', (req, res) => {
+    const { email } = req.body;
 
     if (!email) {
         return res.status(400).json({ error: 'Email is required' });
@@ -85,11 +89,9 @@ app.get('/send-code', (req, res) => {
     const newCode = { code: generateRandomNumber(), timestamp: Date.now(), email };
     codes.push(newCode);
 
-    // Remove expired codes
     const validCodes = codes.filter(code => Date.now() - code.timestamp < EXPIRY_TIME);
     writeCodes(validCodes);
 
-    // Send email with the OTP
     sendEmail(newCode.code, email);
 
     res.json({ message: 'OTP sent successfully', email, code: newCode.code });
@@ -111,6 +113,7 @@ app.get('/verify', (req, res) => {
 
     res.json({ valid: isValid });
 });
+
 
 // Route to check stored codes (for testing)
 app.get('/', (req, res) => {
